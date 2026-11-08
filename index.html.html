@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TMS Portal</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+body{background:#f1f5f9;color:#1f2937;-webkit-tap-highlight-color:transparent}
+.hidden{display:none!important}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#1e3a8a,#2563eb)}
+.login-box{background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2);width:100%;max-width:360px}
+.login-box h2{font-size:22px;margin-bottom:4px}
+.login-box p{color:#64748b;font-size:13px;margin-bottom:16px}
+label{display:block;font-size:12px;font-weight:bold;margin:10px 0 5px;color:#334155}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;background:#fff}
+.role-tabs{display:flex;gap:6px;margin-bottom:12px;background:#f1f5f9;padding:4px;border-radius:10px}
+.role-tabs button{flex:1;padding:8px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;color:#64748b}
+.role-tabs button.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.btn{background:#2563eb;color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:bold;margin-top:14px;width:100%}
+.btn:active{transform:scale(.98)}
+.btn-danger{background:#fee2e2;color:#dc2626;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold}
+.btn-small{background:#2563eb;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold}
+.btn-nav{background:#16a34a;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold}
+.btn-accept{background:#16a34a;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px}
+.btn-pay{background:#f59e0b;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;margin-top:10px;width:100%}
+.btn-assign{background:#7c3aed;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px}
+.btn-track{background:#0891b2;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px;width:100%}
+.btn-stop{background:#dc2626;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px;width:100%}
+.btn-gmaps{background:#dc2626;color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:bold;margin-top:10px;width:100%;text-decoration:none;display:block;text-align:center}
+.error{color:#dc2626;font-size:13px;margin-top:8px}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{background:#1e3a8a;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.header h1{font-size:18px}
+.header .role{font-size:11px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px}
+.content{padding:14px;flex:1;padding-bottom:90px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px}
+.card h2{font-size:16px;margin-bottom:10px;color:#1e293b}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat h3{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.stat p{font-size:24px;font-weight:bold;margin-top:4px;color:#1e293b}
+.stat.blue p{color:#2563eb}
+.stat.green p{color:#16a34a}
+.stat.yellow p{color:#ca8a04}
+.stat.red p{color:#dc2626}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;overflow-x:auto;box-shadow:0 -2px 10px rgba(0,0,0,.08);z-index:1000;padding:6px 4px;gap:2px}
+.bottom-nav button{flex:0 0 auto;min-width:72px;background:none;border:none;padding:8px 10px;cursor:pointer;font-size:10px;color:#64748b;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:8px}
+.bottom-nav button.active{color:#2563eb;font-weight:bold;background:#eff6ff}
+.bottom-nav .icon{font-size:20px}
+.bottom-nav span:last-child{white-space:nowrap}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border-bottom:1px solid #f1f5f9;padding:10px 6px;text-align:left;font-size:12px}
+th{color:#64748b;font-weight:bold;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+.badge{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:bold;display:inline-block}
+.green{background:#dcfce7;color:#166534}
+.yellow{background:#fef9c3;color:#854d0e}
+.red{background:#fee2e2;color:#991b1b}
+.blue{background:#dbeafe;color:#1e40af}
+.gray{background:#f1f5f9;color:#475569}
+.empty{color:#94a3b8;font-size:13px;text-align:center;padding:20px 0}
+.section-title{font-size:14px;font-weight:bold;margin:16px 0 8px;color:#334155}
+.timer{font-size:20px;font-weight:bold;color:#dc2626;text-align:center;margin:10px 0}
+.trip-card{cursor:pointer;transition:transform .1s}
+.trip-card:active{transform:scale(.98)}
+#liveMap{height:260px;width:100%;border-radius:10px;margin-top:10px;z-index:1;touch-action:auto}
+.leaflet-container{touch-action:auto}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <h2>TMS Portal</h2>
+    <p>Transport Management System</p>
+    <div class="role-tabs">
+      <button id="roleAdmin" class="active" onclick="setRole('admin')">Admin</button>
+      <button id="roleDriver" onclick="setRole('driver')">Driver</button>
+      <button id="roleClient" onclick="setRole('client')">Client</button>
+    </div>
+    <label>Email / Username</label>
+    <input id="loginUser" autocomplete="username">
+    <label>Password</label>
+    <input id="loginPass" type="password" autocomplete="current-password">
+    <button class="btn" onclick="login()">Login</button>
+    <p class="error" id="loginError"></p>
+    <p style="font-size:11px;color:#64748b;margin-top:12px;text-align:center">
+      Admin: admin@tms.com / admin123<br><br>
+      <strong>Driver Logins:</strong><br>
+      driver1@tms.com / driver123<br>
+      driver2@tms.com / driver123<br>
+      driver3@tms.com / driver123<br>
+      driver4@tms.com / driver123<br>
+      driver5@tms.com / driver123<br><br>
+      Client: client@tms.com / client123
+    </p>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <div class="header">
+    <h1 id="pageTitle">Dashboard</h1>
+    <span id="userRole" class="role">ADMIN</span>
+  </div>
+
+  <div class="content" id="mainContent">
+
+    <section id="page-dashboard">
+      <div class="stats">
+        <div class="stat blue"><h3>Open Trips</h3><p id="sOpenTrips">0</p></div>
+        <div class="stat yellow"><h3>Pending Unloading</h3><p id="sPendingUnload">0</p></div>
+        <div class="stat green"><h3>In Transit</h3><p id="sInTransit">0</p></div>
+        <div class="stat red"><h3>Completed</h3><p id="sCompleted">0</p></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h2>Recent Trips</h2>
+        <table>
+          <thead><tr><th>Trip</th><th>Route</th><th>Status</th></tr></thead>
+          <tbody id="recentTrips"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-requirements" class="hidden">
+      <div class="card">
+        <h2>New Vehicle Requirement</h2>
+        <label>Client Name</label>
+        <input id="reqClient" value="SH65 Reliance Nagpur" readonly>
+        <label>Client Location</label>
+        <input id="reqLocation" placeholder="Enter location">
+        <label>Vehicle Type</label>
+        <select id="reqVehicleType">
+          <option>Open Body</option><option>Closed Body</option><option>Trailer</option><option>Container</option>
+        </select>
+        <label>Weight (KG)</label>
+        <input id="reqWeight" type="number" placeholder="Enter weight">
+        <label>Body Type</label>
+        <select id="reqBodyType"><option>Open Body</option><option>Closed Body</option></select>
+        <label>Pickup Destination</label>
+        <input id="reqPickup" placeholder="Pickup location">
+        <label>Drop Destination</label>
+        <input id="reqDrop" placeholder="Drop location">
+        <label>Freight Fare (₹)</label>
+        <input id="reqFreight" type="number" placeholder="Enter freight fare">
+        <label>Distance (KM)</label>
+        <input id="reqKm" type="number" placeholder="Enter distance in KM">
+        <label>Remarks</label>
+        <input id="reqRemarks" placeholder="Optional">
+        <button class="btn" onclick="addRequirement()">Submit Requirement</button>
+      </div>
+      <div class="card">
+        <h2>My Requirements</h2>
+        <table>
+          <thead><tr><th>Req</th><th>Route</th><th>Fare</th><th>KM</th><th>Status</th></tr></thead>
+          <tbody id="reqTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-platform" class="hidden">
+      <div class="card">
+        <h2>Open Platform - Available Requirements</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:10px">Client details masked. Accept karke 2 min me payment karo.</p>
+      </div>
+      <div id="platformList"></div>
+    </section>
+
+    <section id="page-booking" class="hidden">
+      <div class="card">
+        <h2>Booking - Fulfill Requirement</h2>
+        <div class="timer" id="bookingTimer">02:00</div>
+        <p style="font-size:12px;color:#64748b;text-align:center;margin-bottom:10px">2 min me payment karo, warna requirement wapas Open ho jayegi.</p>
+        <div id="bookingDetails"></div>
+        <button class="btn-pay" onclick="confirmBookingPayment()">Confirm & Pay</button>
+      </div>
+    </section>
+
+    <section id="page-trips" class="hidden">
+      <div class="section-title">Open Trips</div>
+      <div id="openTripList"></div>
+      <div class="section-title">Completed Trips</div>
+      <div id="completedTripList"></div>
+    </section>
+
+    <section id="page-tripdetail" class="hidden">
+      <button class="btn-small" onclick="showPage('trips')" style="margin-bottom:10px">← Back to Trips</button>
+      <div id="tripDetailContent"></div>
+    </section>
+
+    <section id="page-pod" class="hidden">
+      <div class="card"><h2>POD</h2><p class="empty">POD upload and download will appear here.</p></div>
+    </section>
+
+    <section id="page-reports" class="hidden">
+      <div class="card">
+        <h2>Reports</h2>
+        <div class="stats">
+          <div class="stat blue"><h3>Total Trips</h3><p id="rTotalTrips">0</p></div>
+          <div class="stat green"><h3>Completed</h3><p id="rCompleted">0</p></div>
+          <div class="stat yellow"><h3>In Transit</h3><p id="rInTransit">0</p></div>
+          <div class="stat red"><h3>Pending</h3><p id="rPending">0</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-drivers" class="hidden">
+      <div class="card">
+        <h2>Add Driver</h2>
+        <label>Driver Name</label><input id="driverName">
+        <label>Phone</label><input id="driverPhone">
+        <label>License No</label><input id="driverLicense">
+        <label>Status</label><select id="driverStatus"><option>Available</option><option>On Trip</option><option>Leave</option></select>
+        <button class="btn" onclick="addDriver()">Save Driver</button>
+      </div>
+      <div class="card">
+        <h2>Driver List</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="driverTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-vehicles" class="hidden">
+      <div class="card">
+        <h2>Add Vehicle</h2>
+        <label>Vehicle Number</label><input id="vehicleNumber" placeholder="MH12 AB 1234">
+        <label>Vehicle Type</label><input id="vehicleType" placeholder="Truck / Trailer">
+        <label>Capacity (T)</label><input id="vehicleCapacity" type="number">
+        <label>Status</label><select id="vehicleStatus"><option>Available</option><option>In Transit</option><option>Maintenance</option></select>
+        <button class="btn" onclick="addVehicle()">Save Vehicle</button>
+      </div>
+      <div class="card">
+        <h2>Vehicle List</h2>
+        <table>
+          <thead><tr><th>Number</th><th>Type</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="vehicleTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-customers" class="hidden">
+      <div class="card">
+        <h2>Add Customer</h2>
+        <label>Customer Name</label><input id="customerName">
+        <label>Contact Person</label><input id="customerContact">
+        <label>Phone</label><input id="customerPhone">
+        <label>Email</label><input id="customerEmail">
+        <button class="btn" onclick="addCustomer()">Save Customer</button>
+      </div>
+      <div class="card">
+        <h2>Customer List</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Action</th></tr></thead>
+          <tbody id="customerTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-documents" class="hidden">
+      <div class="card">
+        <h2>Upload Document</h2>
+        <label>Document Type</label>
+        <select id="docType">
+          <option value="">Select document type</option>
+          <option value="Invoice">Invoice</option>
+          <option value="POD">POD</option>
+          <option value="LR">LR</option>
+        </select>
+        <label>Select File</label>
+        <input id="docFile" type="file" accept="image/*,application/pdf">
+        <label>Remarks</label>
+        <input id="docRemarks" placeholder="Optional remarks">
+        <button class="btn" onclick="uploadDocument()">Upload Document</button>
+        <p class="error" id="docError"></p>
+      </div>
+      <div class="card">
+        <h2>Uploaded Documents</h2>
+        <table>
+          <thead><tr><th>Type</th><th>File Name</th><th>Uploaded By</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="docTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-expenses" class="hidden">
+      <div class="card">
+        <h2>Add Expense</h2>
+        <label>Trip</label><select id="expenseTrip"></select>
+        <label>Type</label><select id="expenseType"><option>Fuel</option><option>Toll</option><option>Repair</option><option>Other</option></select>
+        <label>Amount</label><input id="expenseAmount" type="number">
+        <label>Date</label><input id="expenseDate" type="date">
+        <button class="btn" onclick="addExpense()">Save Expense</button>
+      </div>
+      <div class="card">
+        <h2>Expense List</h2>
+        <table>
+          <thead><tr><th>Trip</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead>
+          <tbody id="expenseTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-alerts" class="hidden">
+      <div class="card"><h2>Alerts</h2><p class="empty">No new alerts.</p></div>
+    </section>
+
+    <section id="page-settings" class="hidden">
+      <div class="card"><h2>Settings</h2><p class="empty">Settings coming soon.</p></div>
+    </section>
+
+  </div>
+
+  <div class="bottom-nav" id="bottomNav"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ============================================
+// SUPABASE CONFIG — URL aur anon key set
+// ============================================
+const SUPABASE_URL = 'https://whwrullhlhbiaxrrebef.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indod3J1bGxobGhiaWF4cnJlYmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNDc3NzgsImV4cCI6MjEwOTcyMzc3OH0.t2oDMWd3UahgtFMIXabOkNOMPoPtlczZnLMkgxMevrI';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ============================================
+
+const USERS = {
+  admin:{email:'admin@tms.com',password:'admin123',name:'Admin',role:'ADMIN'},
+  driver1:{email:'driver1@tms.com',password:'driver123',name:'Driver 1',role:'DRIVER'},
+  driver2:{email:'driver2@tms.com',password:'driver123',name:'Driver 2',role:'DRIVER'},
+  driver3:{email:'driver3@tms.com',password:'driver123',name:'Driver 3',role:'DRIVER'},
+  driver4:{email:'driver4@tms.com',password:'driver123',name:'Driver 4',role:'DRIVER'},
+  driver5:{email:'driver5@tms.com',password:'driver123',name:'Driver 5',role:'DRIVER'},
+  client:{email:'client@tms.com',password:'client123',name:'SH65 Reliance Nagpur',role:'CLIENT'}
+};
+let currentRole='admin';
+let currentUser=null;
+let bookingTimerInterval=null;
+let geoWatchId=null;
+let currentTripNo=null;
+let liveMap=null;
+let liveMarker=null;
+let detailRefreshInterval=null;
+
+const MENUS = {
+  ADMIN:[['dashboard','Home','🏠'],['platform','Platform','🌐'],['trips','Trips','🚚'],['drivers','Drivers','👤'],['vehicles','Vehicle','🚛'],['customers','Customer','🏢'],['documents','Docs','📄'],['expenses','Expenses','💰'],['reports','Report','📊'],['alerts','Alert','🔔'],['settings','Setting','⚙️']],
+  DRIVER:[['dashboard','Home','🏠'],['trips','Trips','🚚'],['documents','Docs','📄'],['alerts','Alert','🔔']],
+  CLIENT:[['dashboard','Home','🏠'],['requirements','Requirement','📋'],['trips','Trips','🚚'],['pod','POD','📄'],['reports','Report','📊'],['alerts','Alert','🔔']]
+};
+
+// ============================================
+// SUPABASE DATA LAYER (localStorage replaced)
+// ============================================
+async function dbSelect(table, filters){
+  let q = supabaseClient.from(table).select('*');
+  if(filters){
+    for(const [col,val] of Object.entries(filters)){
+      q = q.eq(col,val);
+    }
+  }
+  const {data,error} = await q;
+  if(error){console.error('dbSelect error',table,error);return [];}
+  return data||[];
+}
+async function dbInsert(table,obj){
+  const {data,error} = await supabaseClient.from(table).insert(obj).select();
+  if(error){console.error('dbInsert error',table,error);alert('Save failed: '+error.message);return null;}
+  return data&&data[0];
+}
+async function dbUpdate(table,id,obj){
+  const {data,error} = await supabaseClient.from(table).update(obj).eq('id',id).select();
+  if(error){console.error('dbUpdate error',table,error);alert('Update failed: '+error.message);return null;}
+  return data&&data[0];
+}
+async function dbDelete(table,id){
+  const {error} = await supabaseClient.from(table).delete().eq('id',id);
+  if(error){console.error('dbDelete error',table,error);alert('Delete failed: '+error.message);return false;}
+  return true;
+}
+// Map UI field names to DB columns
+function reqToDb(r){
+  return {req_no:r.reqNo,client:r.client,location:r.location,vehicle_type:r.vehicleType,weight:r.weight,body_type:r.bodyType,pickup:r.pickup,drop_location:r.drop,freight:r.freight,km:r.km,remarks:r.remarks,status:r.status,accepted_by:r.acceptedBy,booking_expiry:r.bookingExpiry?new Date(r.bookingExpiry).toISOString():null,paid_at:r.paidAt};
+}
+function dbToReq(r){
+  return {id:r.id,reqNo:r.req_no,client:r.client,location:r.location,vehicleType:r.vehicle_type,weight:r.weight,bodyType:r.body_type,pickup:r.pickup,drop:r.drop_location,freight:r.freight,km:r.km,remarks:r.remarks,status:r.status,acceptedBy:r.accepted_by,acceptedAt:r.accepted_at,bookingExpiry:r.booking_expiry?new Date(r.booking_expiry).getTime():null,paidAt:r.paid_at};
+}
+function tripToDb(t){
+  return {trip_no:t.tripNo,client:t.client,vehicle:t.vehicle,driver:t.driver,from_location:t.from,to_location:t.to,stops:t.stops,status:t.status,trip_date:t.date,requirement_id:t.requirementId,freight:t.freight,km:t.km,assigned_driver:t.assignedDriver,assigned_at:t.assignedAt,tracking:t.tracking,status_timestamps:t.statusTimestamps,last_updated:t.lastUpdated};
+}
+function dbToTrip(t){
+  return {id:t.id,tripNo:t.trip_no,client:t.client,vehicle:t.vehicle,driver:t.driver,from:t.from_location,to:t.to_location,stops:t.stops||[],status:t.status,date:t.trip_date,requirementId:t.requirement_id,freight:t.freight,km:t.km,assignedDriver:t.assigned_driver,assignedAt:t.assigned_at,tracking:t.tracking,statusTimestamps:t.status_timestamps,lastUpdated:t.last_updated};
+}
+// ============================================
+
+function setRole(role){
+  currentRole=role;
+  ['admin','driver','client'].forEach(r=>{
+    document.getElementById('role'+r.charAt(0).toUpperCase()+r.slice(1)).classList.toggle('active',r===role);
+  });
+  const u=USERS[role==='driver'?'driver1':role];
+  document.getElementById('loginUser').value=u.email;
+  document.getElementById('loginPass').value=u.password;
+  document.getElementById('loginError').textContent='';
+}
+
+function login(){
+  const email=document.getElementById('loginUser').value.trim().toLowerCase();
+  const password=document.getElementById('loginPass').value;
+  const user=Object.values(USERS).find(u=>u.email===email && u.password===password);
+  if(!user){document.getElementById('loginError').textContent='Invalid email or password';return;}
+  localStorage.setItem('tms_role',user.role);
+  localStorage.setItem('tms_user',user.name);
+  localStorage.setItem('tms_email',user.email);
+  currentUser=user;
+  openPortal(user);
+}
+
+function openPortal(user){
+  currentUser=user;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('userRole').textContent=user.role;
+  renderBottomNav(user.role);
+  showPage('dashboard');
+}
+
+function renderBottomNav(role){
+  const nav=document.getElementById('bottomNav');
+  const items=MENUS[role]||MENUS.ADMIN;
+  nav.innerHTML='';
+  items.forEach(([page,label,icon])=>{
+    const btn=document.createElement('button');
+    btn.id='nav-'+page;
+    btn.innerHTML=`<span class="icon">${icon}</span><span>${label}</span>`;
+    btn.onclick=()=>showPage(page);
+    nav.appendChild(btn);
+  });
+}
+
+function logout(){
+  if(geoWatchId){navigator.geolocation.clearWatch(geoWatchId);geoWatchId=null;}
+  if(detailRefreshInterval){clearInterval(detailRefreshInterval);detailRefreshInterval=null;}
+  localStorage.removeItem('tms_role');
+  localStorage.removeItem('tms_user');
+  localStorage.removeItem('tms_email');
+  currentUser=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+function showPage(page){
+  ['dashboard','requirements','platform','booking','trips','tripdetail','pod','drivers','vehicles','customers','documents','expenses','reports','alerts','settings'].forEach(p=>{
+    const el=document.getElementById('page-'+p);
+    if(el) el.classList.add('hidden');
+  });
+  document.getElementById('page-'+page).classList.remove('hidden');
+  document.getElementById('pageTitle').textContent=page.charAt(0).toUpperCase()+page.slice(1);
+  document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+  const navBtn=document.getElementById('nav-'+page);
+  if(navBtn) navBtn.classList.add('active');
+  if(page==='dashboard') updateDashboard();
+  if(page==='requirements') loadRequirements();
+  if(page==='platform') loadPlatform();
+  if(page==='booking') loadBookingPage();
+  if(page==='trips') loadTrips();
+  if(page==='tripdetail') loadTripDetail();
+  if(page==='pod') loadPOD();
+  if(page==='reports') loadReports();
+  if(page==='drivers') loadDrivers();
+  if(page==='vehicles') loadVehicles();
+  if(page==='customers') loadCustomers();
+  if(page==='expenses') loadExpenses();
+  if(page==='documents') loadDocuments();
+  if(page!=='tripdetail' && detailRefreshInterval){clearInterval(detailRefreshInterval);detailRefreshInterval=null;}
+}
+
+function myScope(){return currentUser && currentUser.role==='CLIENT' ? currentUser.name : null;}
+function myDriverScope(){return currentUser && currentUser.role==='DRIVER' ? currentUser.name : null;}
+
+// ============================================
+// REQUIREMENTS (Supabase)
+// ============================================
+async function addRequirement(){
+  const client=document.getElementById('reqClient').value;
+  const location=document.getElementById('reqLocation').value.trim();
+  const vehicleType=document.getElementById('reqVehicleType').value;
+  const weight=document.getElementById('reqWeight').value;
+  const bodyType=document.getElementById('reqBodyType').value;
+  const pickup=document.getElementById('reqPickup').value.trim();
+  const drop=document.getElementById('reqDrop').value.trim();
+  const freight=document.getElementById('reqFreight').value;
+  const km=document.getElementById('reqKm').value;
+  const remarks=document.getElementById('reqRemarks').value.trim();
+  if(!location||!weight||!pickup||!drop||!freight||!km){alert('Please fill location, weight, pickup, drop, freight fare and KM');return;}
+  const existing=await dbSelect('requirements');
+  const reqNo='REQ-'+String(existing.length+1).padStart(4,'0');
+  const obj=reqToDb({reqNo,client,location,vehicleType,weight,bodyType,pickup,drop,freight,km,remarks,status:'Open'});
+  const saved=await dbInsert('requirements',obj);
+  if(saved){
+    document.getElementById('reqLocation').value='';document.getElementById('reqWeight').value='';
+    document.getElementById('reqPickup').value='';document.getElementById('reqDrop').value='';
+    document.getElementById('reqFreight').value='';document.getElementById('reqKm').value='';
+    document.getElementById('reqRemarks').value='';
+    loadRequirements();
+  }
+}
+
+async function loadRequirements(){
+  const scope=myScope();
+  let reqs=await dbSelect('requirements');
+  reqs=reqs.map(dbToReq);
+  if(scope) reqs=reqs.filter(r=>r.client===scope);
+  const tbody=document.getElementById('reqTable');
+  tbody.innerHTML='';
+  if(!reqs.length){tbody.innerHTML='<tr><td colspan="5" class="empty">No requirements yet.</td></tr>';return;}
+  reqs.forEach(r=>{
+    const cls=r.status==='Open'?'yellow':r.status==='Trip Generated'?'blue':'green';
+    tbody.innerHTML+=`<tr><td>${r.reqNo}</td><td>${r.pickup} → ${r.drop}</td><td>₹${r.freight}</td><td>${r.km} KM</td><td><span class="badge ${cls}">${r.status}</span></td></tr>`;
+  });
+}
+
+function maskClient(name){
+  if(!name) return 'Client';
+  const parts=name.split(' ');
+  if(parts.length===1) return parts[0].charAt(0)+'***';
+  return parts[0].charAt(0)+'*** '+parts[parts.length-1].charAt(0)+'***';
+}
+
+async function loadPlatform(){
+  let reqs=await dbSelect('requirements');
+  reqs=reqs.map(dbToReq).filter(r=>r.status==='Open');
+  const listDiv=document.getElementById('platformList');
+  listDiv.innerHTML='';
+  if(!reqs.length){listDiv.innerHTML='<div class="card"><p class="empty">No open requirements on platform.</p></div>';return;}
+  reqs.forEach(r=>{
+    listDiv.innerHTML+=`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:14px">${r.reqNo}</strong>
+        <span class="badge yellow">Open</span>
+      </div>
+      <p style="font-size:13px;color:#475569">Client: ${maskClient(r.client)}</p>
+      <p style="font-size:13px;color:#64748b">Pickup: ${r.pickup} → Drop: ${r.drop}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Vehicle Type: ${r.vehicleType} | Weight: ${r.weight} KG</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Body Type: ${r.bodyType}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Freight Fare: ₹${r.freight} | Distance: ${r.km} KM</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Remarks: ${r.remarks||'-'}</p>
+      <button class="btn-accept" onclick="acceptRequirement(${r.id})">Accept Requirement</button>
+    </div>`;
+  });
+}
+
+async function acceptRequirement(reqId){
+  let reqs=await dbSelect('requirements');
+  const dbReq=reqs.find(r=>r.id===reqId);
+  if(!dbReq){alert('Requirement not found');return;}
+  const req=dbToReq(dbReq);
+  if(req.status!=='Open'){alert('Already accepted or booked');return;}
+  const updated=await dbUpdate('requirements',reqId,{status:'Booking Pending Payment',accepted_by:currentUser?currentUser.name:'Transporter',booking_expiry:new Date(Date.now()+2*60*1000).toISOString()});
+  if(updated){
+    currentUser.activeBooking=reqId;
+    showPage('booking');
+  }
+}
+
+async function loadBookingPage(){
+  let reqs=await dbSelect('requirements');
+  const dbReq=reqs.find(r=>r.id===currentUser.activeBooking);
+  if(!dbReq||dbReq.status!=='Booking Pending Payment'){
+    alert('No active booking. Requirement may have expired.');
+    showPage('platform');
+    return;
+  }
+  const req=dbToReq(dbReq);
+  const detailsDiv=document.getElementById('bookingDetails');
+  detailsDiv.innerHTML=`
+    <p style="font-size:13px;color:#475569">Requirement: ${req.reqNo}</p>
+    <p style="font-size:13px;color:#64748b">Pickup: ${req.pickup} → Drop: ${req.drop}</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:4px">Vehicle Type: ${req.vehicleType} | Weight: ${req.weight} KG</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:4px">Body Type: ${req.bodyType}</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:4px">Freight Fare: ₹${req.freight} | Distance: ${req.km} KM</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:4px">Remarks: ${req.remarks||'-'}</p>`;
+  startBookingTimer(req);
+}
+
+function startBookingTimer(req){
+  if(bookingTimerInterval) clearInterval(bookingTimerInterval);
+  const timerEl=document.getElementById('bookingTimer');
+  function tick(){
+    const remaining=req.bookingExpiry-Date.now();
+    if(remaining<=0){
+      clearInterval(bookingTimerInterval);
+      bookingTimerInterval=null;
+      expireBooking(req.id);
+      return;
+    }
+    const mins=Math.floor(remaining/60000);
+    const secs=Math.floor((remaining%60000)/1000);
+    timerEl.textContent=String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');
+  }
+  tick();
+  bookingTimerInterval=setInterval(tick,1000);
+}
+
+async function expireBooking(reqId){
+  await dbUpdate('requirements',reqId,{status:'Open',accepted_by:null,booking_expiry:null});
+  currentUser.activeBooking=null;
+  alert('Booking expired. Requirement returned to Open.');
+  showPage('platform');
+}
+
+async function confirmBookingPayment(){
+  let reqs=await dbSelect('requirements');
+  const dbReq=reqs.find(r=>r.id===currentUser.activeBooking);
+  if(!dbReq||dbReq.status!=='Booking Pending Payment'){alert('Booking expired or not found');return;}
+  const req=dbToReq(dbReq);
+  if(Date.now()>req.bookingExpiry){expireBooking(req.id);return;}
+  await dbUpdate('requirements',req.id,{status:'Trip Generated',paid_at:new Date().toISOString()});
+  const trips=await dbSelect('trips');
+  const tripNo='TRP-'+String(trips.length+1).padStart(4,'0');
+  const tripObj=tripToDb({tripNo,client:req.client,vehicle:'Unassigned',driver:'Unassigned',from:req.pickup,to:req.drop,stops:[req.pickup,req.drop],status:'Pending',date:new Date().toISOString().slice(0,10),requirementId:req.id,freight:req.freight,km:req.km,assignedDriver:null,tracking:null});
+  const saved=await dbInsert('trips',tripObj);
+  if(bookingTimerInterval){clearInterval(bookingTimerInterval);bookingTimerInterval=null;}
+  currentUser.activeBooking=null;
+  if(saved){
+    alert('Payment confirmed. Trip '+tripNo+' created. Ab Trips page me driver assign karo.');
+    showPage('trips');
+  }
+}
+
+// ============================================
+// TRIPS (Supabase)
+// ============================================
+async function assignDriver(tripNo){
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===tripNo);
+  if(!dbTrip){alert('Trip not found');return;}
+  const drivers=['Driver 1','Driver 2','Driver 3','Driver 4','Driver 5'];
+  const sel=prompt('Select driver:\n1. Driver 1\n2. Driver 2\n3. Driver 3\n4. Driver 4\n5. Driver 5\n\nEnter number (1-5):');
+  const idx=parseInt(sel)-1;
+  if(!sel||isNaN(idx)||idx<0||idx>=drivers.length){alert('Invalid selection');return;}
+  const updated=await dbUpdate('trips',dbTrip.id,{assigned_driver:drivers[idx],driver:drivers[idx],assigned_at:new Date().toISOString()});
+  if(updated){
+    alert('Trip '+tripNo+' assigned to '+drivers[idx]);
+    loadTrips();
+  }
+}
+
+async function loadTrips(){
+  const driverScope=myDriverScope();
+  const clientScope=myScope();
+  let trips=await dbSelect('trips');
+  trips=trips.map(dbToTrip);
+  if(driverScope) trips=trips.filter(t=>t.assignedDriver===driverScope);
+  if(clientScope) trips=trips.filter(t=>t.client===clientScope);
+  const open=trips.filter(t=>t.status!=='Completed');
+  const completed=trips.filter(t=>t.status==='Completed');
+  const openDiv=document.getElementById('openTripList');
+  const compDiv=document.getElementById('completedTripList');
+  openDiv.innerHTML='';
+  compDiv.innerHTML='';
+  if(!open.length){openDiv.innerHTML='<div class="card"><p class="empty">No open trips.</p></div>';}
+  open.forEach(t=>{
+    const cls=t.status==='In Transit'?'blue':t.status==='Pending Unloading'?'yellow':t.status==='Accepted'?'green':'gray';
+    const isDriver=currentUser && currentUser.role==='DRIVER';
+    const isAdmin=currentUser && currentUser.role==='ADMIN';
+    const assignBtn = (isAdmin && !t.assignedDriver) ? `<button class="btn-assign" onclick="event.stopPropagation();assignDriver('${t.tripNo}')">Assign Driver</button>` : '';
+    const navBtn = isDriver ? `<button class="btn-nav" style="margin-top:10px" onclick="event.stopPropagation();navigateTrip(getTripByNo('${t.tripNo}'))">🧭 Navigate</button>` : '';
+    const statusBtns = isDriver ? `
+      <div style="margin-top:10px">
+        <button class="btn-small" style="background:#16a34a;margin-right:6px" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Accepted')">Accept Trip</button>
+        <button class="btn-small" style="background:#ca8a04" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Arrived')">Arrived</button>
+      </div>
+      <div style="margin-top:6px">
+        <button class="btn-small" style="background:#2563eb;margin-right:6px" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Loading')">Loading</button>
+        <button class="btn-small" style="background:#7c3aed" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','In Transit')">In Transit</button>
+      </div>
+      <div style="margin-top:6px">
+        <button class="btn-small" style="background:#0891b2;margin-right:6px" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Vehicle Reached')">Vehicle Reached</button>
+        <button class="btn-small" style="background:#dc2626" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Destination Unloading')">Destination Unloading</button>
+      </div>
+      <div style="margin-top:6px">
+        <button class="btn-small" style="background:#f59e0b;margin-right:6px" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','POD Pending')">POD Pending</button>
+        <button class="btn-small" style="background:#16a34a" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','POD Received')">POD Received</button>
+      </div>
+      <div style="margin-top:6px">
+        <button class="btn-small" style="background:#1e293b;width:100%" onclick="event.stopPropagation();updateTripStatus('${t.tripNo}','Completed')">Close Trip</button>
+      </div>` : '';
+    const timeline = t.statusTimestamps && Object.keys(t.statusTimestamps).length ? `<div style="margin-top:8px;font-size:12px;color:#475569"><strong>Status Timeline:</strong><br>${Object.entries(t.statusTimestamps).map(([s,time])=>`${s}: ${new Date(time).toLocaleString()}`).join('<br>')}</div>` : '';
+    openDiv.innerHTML+=`<div class="card trip-card" onclick="openTripDetail('${t.tripNo}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:14px">${t.tripNo}</strong>
+        <span class="badge ${cls}">${t.status}</span>
+      </div>
+      <p style="font-size:13px;color:#475569">${t.client}</p>
+      <p style="font-size:13px;color:#64748b">${t.from} → ${t.to}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Vehicle: ${t.vehicle} | Driver: ${t.assignedDriver||'Unassigned'}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Freight: ₹${t.freight||'-'} | KM: ${t.km||'-'}</p>
+      ${timeline}
+      ${assignBtn}
+      ${navBtn}
+      ${statusBtns}
+    </div>`;
+  });
+  if(!completed.length){compDiv.innerHTML='<div class="card"><p class="empty">No completed trips.</p></div>';}
+  completed.forEach(t=>{
+    compDiv.innerHTML+=`<div class="card trip-card" onclick="openTripDetail('${t.tripNo}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:14px">${t.tripNo}</strong>
+        <span class="badge green">Completed</span>
+      </div>
+      <p style="font-size:13px;color:#475569">${t.client}</p>
+      <p style="font-size:13px;color:#64748b">${t.from} → ${t.to}</p>
+      <button class="btn-small" style="margin-top:10px" onclick="event.stopPropagation();viewPOD('${t.tripNo}')">View POD</button>
+    </div>`;
+  });
+}
+
+function openTripDetail(tripNo){
+  currentTripNo=tripNo;
+  showPage('tripdetail');
+}
+
+async function loadTripDetail(){
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===currentTripNo);
+  if(!dbTrip){alert('Trip not found');showPage('trips');return;}
+  const trip=dbToTrip(dbTrip);
+  const isDriver=currentUser && currentUser.role==='DRIVER';
+  const isClient=currentUser && currentUser.role==='CLIENT';
+  const clientMasked = isClient ? trip.client : maskClient(trip.client);
+
+  let trackSection='';
+  if(isDriver){
+    const shareBtn = (trip.tracking && trip.tracking.active) ?
+      `<button class="btn-stop" onclick="stopTracking('${trip.tripNo}')">⏹ Stop Sharing Location</button>` :
+      `<button class="btn-track" onclick="startTracking('${trip.tripNo}')">📍 Start Sharing Location</button>`;
+    trackSection = `
+      <div class="card" style="margin-top:10px">
+        <h2>Location Sharing</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px">Apna location share karo taki Admin aur Client trip track kar sake.</p>
+        ${shareBtn}
+      </div>`;
+  } else {
+    const hasTracking = trip.tracking && trip.tracking.lat;
+    const gmapsUrl = hasTracking ? `https://www.google.com/maps?q=${trip.tracking.lat},${trip.tracking.lng}` : '#';
+    const trackingInfo = hasTracking ? 
+      `<div class="card" style="margin-top:10px">
+        <h2>Live Tracking</h2>
+        <p style="font-size:13px;color:#475569">Latitude: ${trip.tracking.lat.toFixed(5)}</p>
+        <p style="font-size:13px;color:#475569">Longitude: ${trip.tracking.lng.toFixed(5)}</p>
+        <p style="font-size:18px;font-weight:bold;color:#2563eb;margin-top:6px">Speed: ${trip.tracking.speed?trip.tracking.speed.toFixed(1):'0.0'} km/h</p>
+        <p style="font-size:11px;color:#94a3b8;margin-top:4px">Last updated: ${new Date(trip.tracking.updatedAt).toLocaleTimeString()}</p>
+        <div id="liveMap"></div>
+        <a class="btn-gmaps" href="${gmapsUrl}" target="_blank">🗺️ Open Live Location in Google Maps</a>
+      </div>` :
+      `<div class="card" style="margin-top:10px">
+        <h2>Live Tracking</h2>
+        <p class="empty">Driver ne location share nahi ki abhi tak.</p>
+      </div>`;
+    trackSection = trackingInfo;
+  }
+
+  document.getElementById('tripDetailContent').innerHTML=`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:16px">${trip.tripNo}</strong>
+        <span class="badge ${trip.status==='Completed'?'green':trip.status==='In Transit'?'blue':'yellow'}">${trip.status}</span>
+      </div>
+      <p style="font-size:13px;color:#475569">Client: ${clientMasked}</p>
+      <p style="font-size:13px;color:#64748b">Route: ${trip.from} → ${trip.to}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Vehicle: ${trip.vehicle} | Driver: ${trip.assignedDriver||'Unassigned'}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Stops: ${(trip.stops||[]).join(' → ')}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Freight: ₹${trip.freight||'-'} | KM: ${trip.km||'-'}</p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:4px">Date: ${trip.date}</p>
+    </div>
+    ${trackSection}
+  `;
+
+  if(!isDriver && trip.tracking && trip.tracking.lat){
+    setTimeout(function(){
+      const mapDiv=document.getElementById('liveMap');
+      if(!mapDiv) return;
+      if(!liveMap){
+        liveMap=L.map('liveMap',{touchZoom:true,dragging:true,tap:true}).setView([trip.tracking.lat,trip.tracking.lng],13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(liveMap);
+        liveMarker=L.marker([trip.tracking.lat,trip.tracking.lng]).addTo(liveMap);
+      } else {
+        liveMap.setView([trip.tracking.lat,trip.tracking.lng],13);
+        liveMarker.setLatLng([trip.tracking.lat,trip.tracking.lng]);
+      }
+      setTimeout(function(){ if(liveMap) liveMap.invalidateSize(); },200);
+    },100);
+  }
+
+  if(!isDriver && !detailRefreshInterval){
+    detailRefreshInterval=setInterval(function(){
+      if(document.getElementById('page-tripdetail').classList.contains('hidden')){clearInterval(detailRefreshInterval);detailRefreshInterval=null;return;}
+      loadTripDetail();
+    },5000);
+  }
+}
+
+async function startTracking(tripNo){
+  if(!navigator.geolocation){alert('Geolocation not supported');return;}
+  navigator.geolocation.getCurrentPosition(async function(pos){
+    await saveTracking(tripNo,pos);
+    geoWatchId=navigator.geolocation.watchPosition(async function(p){
+      await saveTracking(tripNo,p);
+    },function(err){
+      alert('Location error: '+err.message);
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:5000});
+    alert('Location sharing started. Admin aur Client ab aapka location track kar sakte hain.');
+  },function(err){
+    alert('Location permission denied or error: '+err.message);
+  },{enableHighAccuracy:true,timeout:10000,maximumAge:5000});
+}
+
+async function saveTracking(tripNo,pos){
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===tripNo);
+  if(!dbTrip) return;
+  const tracking={active:true,lat:pos.coords.latitude,lng:pos.coords.longitude,speed:pos.coords.speed?pos.coords.speed*3.6:0,updatedAt:Date.now()};
+  await dbUpdate('trips',dbTrip.id,{tracking:tracking});
+}
+
+async function stopTracking(tripNo){
+  if(geoWatchId){navigator.geolocation.clearWatch(geoWatchId);geoWatchId=null;}
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===tripNo);
+  if(dbTrip&&dbTrip.tracking){
+    const tracking={...dbTrip.tracking,active:false};
+    await dbUpdate('trips',dbTrip.id,{tracking:tracking});
+  }
+  alert('Location sharing stopped.');
+  loadTripDetail();
+}
+
+async function updateTripStatus(tripNo,status){
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===tripNo);
+  if(!dbTrip){alert('Trip not found');return;}
+  const ts={...(dbTrip.status_timestamps||{})};
+  ts[status]=new Date().toISOString();
+  const obj={status:status,status_timestamps:ts,last_updated:new Date().toISOString()};
+  if(status==='Accepted'){obj.accepted_by=currentUser?currentUser.name:'Driver';}
+  const updated=await dbUpdate('trips',dbTrip.id,obj);
+  if(updated){
+    alert('Trip '+tripNo+' status updated to: '+status);
+    loadTrips();
+    updateDashboard();
+  }
+}
+
+async function getTripByNo(no){
+  let trips=await dbSelect('trips');
+  const dbTrip=trips.find(t=>t.trip_no===no);
+  return dbTrip?dbToTrip(dbTrip):null;
+}
+
+function navigateTrip(trip){
+  if(!trip){alert('Trip not found');return;}
+  const stops=trip.stops&&trip.stops.length?trip.stops:[trip.from,trip.to];
+  const origin=encodeURIComponent(stops[0]);
+  const destination=encodeURIComponent(stops[stops.length-1]);
+  const waypoints=stops.slice(1,-1).map(s=>'&waypoints='+encodeURIComponent(s)).join('');
+  const url='https://www.google.com/maps/dir/?api=1&origin='+origin+'&destination='+destination+waypoints+'&travelmode=driving';
+  window.open(url,'_blank');
+}
+
+function viewPOD(tripNo){alert('POD for '+tripNo+' coming soon.');}
+function loadPOD(){}
+
+async function loadReports(){
+  const driverScope=myDriverScope();
+  const clientScope=myScope();
+  let trips=await dbSelect('trips');
+  trips=trips.map(dbToTrip);
+  if(driverScope) trips=trips.filter(t=>t.assignedDriver===driverScope);
+  if(clientScope) trips=trips.filter(t=>t.client===clientScope);
+  document.getElementById('rTotalTrips').textContent=trips.length;
+  document.getElementById('rCompleted').textContent=trips.filter(t=>t.status==='Completed').length;
+  document.getElementById('rInTransit').textContent=trips.filter(t=>t.status==='In Transit').length;
+  document.getElementById('rPending').textContent=trips.filter(t=>t.status==='Pending'||t.status==='Pending Unloading').length;
+}
+
+// ============================================
+// DRIVERS / VEHICLES / CUSTOMERS / EXPENSES / DOCS (Supabase)
+// ============================================
+async function addDriver(){
+  const name=document.getElementById('driverName').value.trim();
+  if(!name){alert('Driver name is required');return;}
+  const saved=await dbInsert('drivers',{name,phone:document.getElementById('driverPhone').value,license:document.getElementById('driverLicense').value,status:document.getElementById('driverStatus').value});
+  if(saved){
+    document.getElementById('driverName').value='';document.getElementById('driverPhone').value='';document.getElementById('driverLicense').value='';
+    loadDrivers();
+  }
+}
+
+async function loadDrivers(){
+  const drivers=await dbSelect('drivers');
+  const tbody=document.getElementById('driverTable');
+  tbody.innerHTML='';
+  if(!drivers.length){tbody.innerHTML='<tr><td colspan="4" class="empty">No drivers yet. Add drivers first.</td></tr>';return;}
+  drivers.forEach(d=>{
+    const cls=d.status==='Available'?'green':d.status==='On Trip'?'blue':'yellow';
+    tbody.innerHTML+=`<tr><td>${d.name}</td><td>${d.phone||'-'}</td><td><span class="badge ${cls}">${d.status}</span></td><td><button class="btn-danger" onclick="deleteItem('drivers',${d.id},loadDrivers)">Delete</button></td></tr>`;
+  });
+}
+
+async function addVehicle(){
+  const number=document.getElementById('vehicleNumber').value.trim();
+  if(!number){alert('Vehicle number is required');return;}
+  const saved=await dbInsert('vehicles',{number,type:document.getElementById('vehicleType').value,capacity:document.getElementById('vehicleCapacity').value,status:document.getElementById('vehicleStatus').value});
+  if(saved){
+    document.getElementById('vehicleNumber').value='';document.getElementById('vehicleType').value='';document.getElementById('vehicleCapacity').value='';
+    loadVehicles();
+  }
+}
+
+async function loadVehicles(){
+  const vehicles=await dbSelect('vehicles');
+  const tbody=document.getElementById('vehicleTable');
+  tbody.innerHTML='';
+  if(!vehicles.length){tbody.innerHTML='<tr><td colspan="4" class="empty">No vehicles yet. Add vehicles first.</td></tr>';return;}
+  vehicles.forEach(v=>{
+    const cls=v.status==='Available'?'green':v.status==='In Transit'?'blue':'yellow';
+    tbody.innerHTML+=`<tr><td>${v.number}</td><td>${v.type||'-'}</td><td><span class="badge ${cls}">${v.status}</span></td><td><button class="btn-danger" onclick="deleteItem('vehicles',${v.id},loadVehicles)">Delete</button></td></tr>`;
+  });
+}
+
+async function addCustomer(){
+  const name=document.getElementById('customerName').value.trim();
+  if(!name){alert('Customer name is required');return;}
+  const saved=await dbInsert('customers',{name,contact:document.getElementById('customerContact').value,phone:document.getElementById('customerPhone').value,email:document.getElementById('customerEmail').value});
+  if(saved){
+    document.getElementById('customerName').value='';document.getElementById('customerContact').value='';document.getElementById('customerPhone').value='';document.getElementById('customerEmail').value='';
+    loadCustomers();
+  }
+}
+
+async function loadCustomers(){
+  const customers=await dbSelect('customers');
+  const tbody=document.getElementById('customerTable');
+  tbody.innerHTML='';
+  if(!customers.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No customers yet.</td></tr>';return;}
+  customers.forEach(c=>{
+    tbody.innerHTML+=`<tr><td>${c.name}</td><td>${c.phone||'-'}</td><td><button class="btn-danger" onclick="deleteItem('customers',${c.id},loadCustomers)">Delete</button></td></tr>`;
+  });
+}
+
+async function addExpense(){
+  const trip=document.getElementById('expenseTrip').value;
+  const amount=document.getElementById('expenseAmount').value;
+  if(!trip||!amount){alert('Select trip and enter amount');return;}
+  const saved=await dbInsert('expenses',{trip_no:trip,type:document.getElementById('expenseType').value,amount:Number(amount),expense_date:document.getElementById('expenseDate').value});
+  if(saved){
+    document.getElementById('expenseAmount').value='';
+    loadExpenses();
+  }
+}
+
+async function loadExpenses(){
+  const expenses=await dbSelect('expenses');
+  const tbody=document.getElementById('expenseTable');
+  tbody.innerHTML='';
+  if(!expenses.length){tbody.innerHTML='<tr><td colspan="4" class="empty">No expenses yet.</td></tr>';return;}
+  expenses.forEach(e=>{
+    tbody.innerHTML+=`<tr><td>${e.trip_no}</td><td>${e.type}</td><td>${e.amount}</td><td><button class="btn-danger" onclick="deleteItem('expenses',${e.id},loadExpenses)">Delete</button></td></tr>`;
+  });
+}
+
+async function uploadDocument(){
+  const type=document.getElementById('docType').value;
+  const fileInput=document.getElementById('docFile');
+  const remarks=document.getElementById('docRemarks').value.trim();
+  const err=document.getElementById('docError');
+  err.textContent='';
+  if(!type){err.textContent='Please select document type';return;}
+  if(!fileInput.files.length){err.textContent='Please select a file';return;}
+  const file=fileInput.files[0];
+  const saved=await dbInsert('documents',{type,file_name:file.name,size:file.size,remarks:remarks});
+  if(saved){
+    fileInput.value='';
+    document.getElementById('docRemarks').value='';
+    loadDocuments();
+  }
+}
+
+async function loadDocuments(){
+  const docs=await dbSelect('documents');
+  const tbody=document.getElementById('docTable');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  if(!docs.length){tbody.innerHTML='<tr><td colspan="5" class="empty">No documents uploaded yet.</td></tr>';return;}
+  docs.forEach(d=>{
+    tbody.innerHTML+=`<tr><td>${d.type}</td><td>${d.file_name}</td><td>${d.uploaded_by||'-'}</td><td>${d.doc_date}</td><td><button class="btn-danger" onclick="deleteItem('documents',${d.id},loadDocuments)">Delete</button></td></tr>`;
+  });
+}
+
+async function deleteItem(table,id,refresh){
+  const ok=await dbDelete(table,id);
+  if(ok) refresh();
+}
+
+async function updateDashboard(){
+  const driverScope=myDriverScope();
+  const clientScope=myScope();
+  let trips=await dbSelect('trips');
+  trips=trips.map(dbToTrip);
+  if(driverScope) trips=trips.filter(t=>t.assignedDriver===driverScope);
+  if(clientScope) trips=trips.filter(t=>t.client===clientScope);
+  document.getElementById('sOpenTrips').textContent=trips.filter(t=>t.status!=='Completed').length;
+  const pendingUnloadStatuses=['Pending Unloading','Vehicle Reached','Destination Unloading'];
+  document.getElementById('sPendingUnload').textContent=trips.filter(t=>pendingUnloadStatuses.includes(t.status)).length;
+  document.getElementById('sInTransit').textContent=trips.filter(t=>t.status==='In Transit').length;
+  document.getElementById('sCompleted').textContent=trips.filter(t=>t.status==='Completed').length;
+  const tbody=document.getElementById('recentTrips');
+  const recent=trips.slice(-5).reverse();
+  tbody.innerHTML='';
+  if(!recent.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No trips yet.</td></tr>';return;}
+  recent.forEach(t=>{
+    const cls=t.status==='Completed'?'green':t.status==='In Transit'?'blue':t.status==='Pending Unloading'?'yellow':'gray';
+    tbody.innerHTML+=`<tr><td>${t.tripNo}</td><td>${t.from} → ${t.to}</td><td><span class="badge ${cls}">${t.status}</span></td></tr>`;
+  });
+}
+
+async function refreshDropdowns(){
+  const customers=await dbSelect('customers');
+  const vehicles=await dbSelect('vehicles');
+  const drivers=await dbSelect('drivers');
+  const trips=await dbSelect('trips');
+  document.getElementById('tripCustomer').innerHTML='<option value="">Select customer</option>'+customers.map(c=>`<option>${c.name}</option>`).join('');
+  document.getElementById('tripVehicle').innerHTML='<option value="">Select vehicle</option>'+vehicles.map(v=>`<option>${v.number}</option>`).join('');
+  document.getElementById('tripDriver').innerHTML='<option value="">Select driver</option>'+drivers.map(d=>`<option>${d.name}</option>`).join('');
+  document.getElementById('expenseTrip').innerHTML='<option value="">Select trip</option>'+trips.map(t=>`<option>${t.trip_no}</option>`).join('');
+}
+
+window.onload=function(){
+  setRole('admin');
+  refreshDropdowns();
+  loadDocuments();
+  // Login screen hamesha pehle dikhega (auto-login hata diya)
+};
+</script>
+
+</body>
+</html>
